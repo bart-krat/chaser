@@ -20,12 +20,10 @@ const URGENCY_CONFIG: Record<string, UrgencyTiming> = {
   }
 };
 
-// Medium escalation strategies
+// Medium strategy - Email only (WhatsApp and Call removed)
 const MEDIUM_STRATEGY: Record<string, string[]> = {
-  'Email': ['email', 'email', 'email', 'call'],
-  'Whatsapp': ['whatsapp', 'whatsapp', 'email'],
-  'Call': ['call', 'email', 'call'],
-  'Hybrid': ['email', 'whatsapp', 'call', 'email']
+  'Email': ['email', 'email', 'email', 'email'],
+  'Hybrid': ['email', 'email', 'email', 'email'] // Changed to email-only
 };
 
 /**

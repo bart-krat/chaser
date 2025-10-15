@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CreateChaserRequest, CreateChaserResponse, ChaserBackend } from '@/types/backend';
 import { generateOutreachSchedule, getNextOutreachDate } from '@/services/scheduleGenerator';
 import { generateContent, generateSubject } from '@/services/contentGenerator';
+import { generateEmailWithAI, generateSubjectWithAI, isAIEnabled } from '@/services/aiContentGenerator';
 import { sendGmailEmail, trackEmailSent } from '@/lib/gmail';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateCustomer } from '@/lib/db';
@@ -31,15 +32,43 @@ export async function POST(request: NextRequest) {
       documents: body.documents
     });
     
-    // Generate content for each schedule item
+    // Generate content for each schedule item (all emails now)
+    const aiEnabled = isAIEnabled();
+    console.log(`🤖 AI Content Generation: ${aiEnabled ? 'Enabled' : 'Disabled (using templates)'}`);
+    
     for (const item of schedule) {
-      item.content = generateContent(item.template, {
-        contactName: body.who,
-        documents: body.documents,
-        task: body.task,
-        attemptNumber: item.attemptNumber,
-        urgency: body.urgency
-      });
+      // All items are emails now - use AI if available, templates as fallback
+      if (aiEnabled) {
+        try {
+          item.content = await generateEmailWithAI({
+            contactName: body.who,
+            documents: body.documents,
+            task: body.task,
+            urgency: body.urgency,
+            attemptNumber: item.attemptNumber,
+            company: undefined
+          });
+          console.log(`✅ AI content generated for attempt ${item.attemptNumber}`);
+        } catch (error) {
+          console.error(`Failed to generate AI content for attempt ${item.attemptNumber}, using template`);
+          item.content = generateContent(item.template, {
+            contactName: body.who,
+            documents: body.documents,
+            task: body.task,
+            attemptNumber: item.attemptNumber,
+            urgency: body.urgency
+          });
+        }
+      } else {
+        // AI disabled - use email templates
+        item.content = generateContent(item.template, {
+          contactName: body.who,
+          documents: body.documents,
+          task: body.task,
+          attemptNumber: item.attemptNumber,
+          urgency: body.urgency
+        });
+      }
     }
     
     // Find or create customer if email is provided in 'who' field
@@ -119,13 +148,26 @@ export async function POST(request: NextRequest) {
       try {
         console.log('📧 Sending first email immediately...');
         
-        const subject = generateSubject({
-          contactName: body.who,
-          documents: body.documents,
-          task: body.task,
-          attemptNumber: 1,
-          urgency: body.urgency
-        });
+        // Generate subject line (use AI if available)
+        let subject: string;
+        if (isAIEnabled()) {
+          subject = await generateSubjectWithAI({
+            contactName: body.who,
+            documents: body.documents,
+            task: body.task,
+            urgency: body.urgency,
+            attemptNumber: 1
+          });
+          console.log(`🤖 AI Subject: ${subject}`);
+        } else {
+          subject = generateSubject({
+            contactName: body.who,
+            documents: body.documents,
+            task: body.task,
+            attemptNumber: 1,
+            urgency: body.urgency
+          });
+        }
         
         // Use contactEmail if provided, otherwise use 'who' field (which could be an email)
         const recipientEmail = body.contactEmail || body.who;

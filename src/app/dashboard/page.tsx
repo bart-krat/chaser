@@ -25,8 +25,8 @@ export default function DashboardPage() {
       
       console.log(`📊 Received ${data.chasers.length} chasers from API`);
       
-      // Convert backend format to frontend format
-      const formattedChasers: Chaser[] = data.chasers.map((c: any) => ({
+      // Convert backend format to frontend format (include schedule data)
+      const formattedChasers: any[] = data.chasers.map((c: any) => ({
         id: c.id,
         docType: c.documents,
         urgency: c.urgency,
@@ -39,7 +39,8 @@ export default function DashboardPage() {
           company: c.customer?.company || 'N/A'
         },
         createdAt: new Date(c.createdAt),
-        status: c.status as any
+        status: c.status as any,
+        schedule: c.schedule || [] // Include schedule data
       }));
       
       setChasers(formattedChasers);

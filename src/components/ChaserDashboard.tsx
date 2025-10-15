@@ -1,9 +1,10 @@
 'use client';
 
 import { Chaser } from '@/types/chaser';
+import ChaserSchedule from './ChaserSchedule';
 
 interface ChaserDashboardProps {
-  chasers: Chaser[];
+  chasers: any[]; // Extended to include schedule
   onDelete: (id: string) => void;
 }
 
@@ -104,17 +105,13 @@ export default function ChaserDashboard({ chasers, onDelete }: ChaserDashboardPr
               </div>
             </div>
 
-            {/* Status Banner */}
-            <div className="mt-4 pt-4 border-t border-warm-pink/30">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">
-                  Status: <span className="capitalize text-warm-pink">{chaser.status}</span>
-                </span>
-                <span className="text-xs text-foreground/60 italic">
-                  Automated outreach will be initiated shortly
-                </span>
-              </div>
-            </div>
+            {/* Schedule Display */}
+            {chaser.schedule && chaser.schedule.length > 0 && (
+              <ChaserSchedule 
+                schedule={chaser.schedule} 
+                chaserUrgency={chaser.urgency}
+              />
+            )}
           </div>
         ))}
       </div>

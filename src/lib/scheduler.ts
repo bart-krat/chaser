@@ -1,7 +1,8 @@
 import cron from 'node-cron';
 import { sendGmailEmail, trackEmailSent } from './gmail';
-import { getChasersPendingOutreach, updateChaser, readChasers } from './storage';
+import { getChasersPendingOutreach, updateScheduleItem, updateChaserInDb } from './db';
 import { generateSubject } from '@/services/contentGenerator';
+import { generateSubjectWithAI, isAIEnabled } from '@/services/aiContentGenerator';
 
 let isSchedulerRunning = false;
 
@@ -28,72 +29,65 @@ async function processOutreach() {
     
     for (const { chaser, scheduleItem } of pending) {
       try {
-        console.log(`\n📧 Sending ${scheduleItem.medium} for chaser ${chaser.id}`);
+        console.log(`\n📧 Sending email for chaser ${chaser.id}`);
         console.log(`   Attempt: ${scheduleItem.attemptNumber}`);
-        console.log(`   To: ${chaser.contactName}`);
+        console.log(`   To: ${chaser.contactEmail || chaser.contactName}`);
         
-        if (scheduleItem.medium === 'email') {
-          // Send email
-          const subject = generateSubject({
+        // All schedule items are emails now
+        // Generate subject line (use AI if available)
+        let subject: string;
+        if (isAIEnabled()) {
+          try {
+            subject = await generateSubjectWithAI({
+              contactName: chaser.contactName,
+              documents: chaser.documents,
+              task: chaser.task,
+              urgency: chaser.urgency,
+              attemptNumber: scheduleItem.attemptNumber
+            });
+          } catch (error) {
+            // Fallback to template subject
+            subject = generateSubject({
+              contactName: chaser.contactName,
+              documents: chaser.documents,
+              task: chaser.task,
+              attemptNumber: scheduleItem.attemptNumber,
+              urgency: chaser.urgency
+            });
+          }
+        } else {
+          subject = generateSubject({
             contactName: chaser.contactName,
             documents: chaser.documents,
             task: chaser.task,
             attemptNumber: scheduleItem.attemptNumber,
             urgency: chaser.urgency
           });
-          
-          await sendGmailEmail({
-            to: chaser.contactEmail || 'test@example.com', // Fallback for testing
-            subject,
-            text: scheduleItem.content,
-            html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${scheduleItem.content}</div>`
-          });
-          
-          trackEmailSent();
-          
-          // Update schedule item status
-          const chasers = readChasers();
-          const chaserIndex = chasers.findIndex(c => c.id === chaser.id);
-          
-          if (chaserIndex !== -1) {
-            const itemIndex = chasers[chaserIndex].schedule.findIndex(
-              s => s.id === scheduleItem.id
-            );
-            
-            if (itemIndex !== -1) {
-              chasers[chaserIndex].schedule[itemIndex].status = 'sent';
-              chasers[chaserIndex].schedule[itemIndex].sentAt = new Date();
-              chasers[chaserIndex].currentAttempt = scheduleItem.attemptNumber;
-              chasers[chaserIndex].updatedAt = new Date();
-              
-              // Calculate next outreach date
-              const nextPending = chasers[chaserIndex].schedule.find(
-                s => s.status === 'pending'
-              );
-              chasers[chaserIndex].nextOutreachAt = nextPending
-                ? nextPending.scheduledFor
-                : null;
-              
-              // Update status if all attempts done
-              if (!nextPending) {
-                chasers[chaserIndex].status = 'completed';
-                chasers[chaserIndex].completedAt = new Date();
-              }
-              
-              // Save to file
-              require('./storage').writeChasers(chasers);
-              
-              console.log(`✅ Email sent and status updated for ${chaser.id}`);
-            }
-          }
-        } else if (scheduleItem.medium === 'whatsapp') {
-          console.log(`📱 WhatsApp integration not yet implemented - marking as sent`);
-          // TODO: Implement WhatsApp sending via Twilio
-          // For now, just mark as sent
-        } else if (scheduleItem.medium === 'call') {
-          console.log(`📞 Call scheduling not yet implemented - marking as pending`);
-          // TODO: Implement call scheduling
         }
+        
+        // Send email
+        await sendGmailEmail({
+          to: chaser.contactEmail || chaser.contactName,
+          subject,
+          text: scheduleItem.content,
+          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${scheduleItem.content}</div>`
+        });
+        
+        trackEmailSent();
+        
+        // Update schedule item status in database
+        await updateScheduleItem(scheduleItem.id, {
+          status: 'sent',
+          sentAt: new Date()
+        });
+        
+        // Update chaser
+        await updateChaserInDb(chaser.id, {
+          currentAttempt: scheduleItem.attemptNumber,
+          updatedAt: new Date()
+        });
+        
+        console.log(`✅ Email sent and status updated for ${chaser.id}`);
         
       } catch (error) {
         console.error(`❌ Error processing outreach for ${chaser.id}:`, error);
