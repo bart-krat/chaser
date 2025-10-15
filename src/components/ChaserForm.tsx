@@ -18,7 +18,7 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
     task: '',
     documents: '',
     who: '',
-    urgency: '',
+    urgency: 'Medium', // Default to Medium
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,14 +85,16 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
         <label className="block text-sm font-semibold mb-2 text-foreground">
           Urgency
         </label>
-        <input
-          type="text"
+        <select
           value={formData.urgency}
           onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
-          placeholder="e.g., Low, Medium, High, Urgent..."
-          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
+          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground focus:border-warm-pink focus:outline-none transition-colors"
           required
-        />
+        >
+          <option value="Low">Low - 3 days initial delay</option>
+          <option value="Medium">Medium - 1 day initial delay</option>
+          <option value="High">High - 6 hours initial delay</option>
+        </select>
       </div>
 
       {/* Submit Button */}

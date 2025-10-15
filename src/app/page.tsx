@@ -11,30 +11,56 @@ export default function Home() {
   const router = useRouter();
   const { addChaser } = useChasers();
 
-  const handleCreateChaser = (formData: any) => {
-    // Create a user object from the "who" field
-    const customUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.customData.who,
-      email: 'N/A',
-      phone: 'N/A',
-      company: 'N/A'
-    };
+  const handleCreateChaser = async (formData: any) => {
+    try {
+      // Call the API to create chaser with full backend scheduling
+      const response = await fetch('/api/chasers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          task: formData.customData.task,
+          documents: formData.customData.documents,
+          who: formData.customData.who,
+          urgency: formData.customData.urgency,
+        }),
+      });
 
-    const newChaser: Chaser = {
-      id: Math.random().toString(36).substr(2, 9),
-      docType: formData.customData.documents as any,
-      urgency: formData.customData.urgency as any,
-      medium: 'Email' as any,
-      user: customUser,
-      createdAt: new Date(),
-      status: 'pending',
-    };
+      if (!response.ok) {
+        throw new Error('Failed to create chaser');
+      }
 
-    addChaser(newChaser);
-    
-    // Redirect to dashboard
-    router.push('/dashboard');
+      const result = await response.json();
+      console.log('Chaser created:', result);
+
+      // Create a simplified chaser for the frontend display
+      const customUser = {
+        id: result.chaser.id,
+        name: formData.customData.who,
+        email: 'N/A',
+        phone: 'N/A',
+        company: 'N/A'
+      };
+
+      const newChaser: Chaser = {
+        id: result.chaser.id,
+        docType: formData.customData.documents as any,
+        urgency: formData.customData.urgency as any,
+        medium: 'Email' as any,
+        user: customUser,
+        createdAt: new Date(result.chaser.createdAt),
+        status: 'pending',
+      };
+
+      addChaser(newChaser);
+      
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error creating chaser:', error);
+      alert('Failed to create chaser. Please try again.');
+    }
   };
 
   return (

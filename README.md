@@ -1,36 +1,185 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 Chaser Agent
 
-## Getting Started
+Automate document requests with intelligent follow-ups.
 
-First, run the development server:
+## 🚀 Features
+
+- **Simple Form Interface**: Create chasers with just 4 text inputs (Task, Documents, Who, Urgency)
+- **Intelligent Scheduling**: Automatically schedules follow-ups based on urgency level
+- **Multi-Channel Outreach**: Email, WhatsApp, Call, and Hybrid strategies
+- **Content Generation**: Pre-built templates for all communication channels
+- **Dashboard**: Monitor all active chasers in real-time
+- **Settings**: Configure urgency levels and communication mediums
+
+## 🏗️ Architecture
+
+### Frontend (Next.js + TypeScript)
+- **Pages**: Home (Create), Dashboard, Settings (Urgency/Medium)
+- **Components**: ChaserForm, ChaserDashboard, SettingsDropdown
+- **Context**: Global state management for chasers
+- **Styling**: Dark purple background with lime green accents
+
+### Backend (Next.js API Routes + TypeScript)
+
+#### Services
+- **Schedule Generator** (`/src/services/scheduleGenerator.ts`)
+  - Generates outreach schedules based on urgency
+  - Supports Low, Medium, High, and Urgent priorities
+  - Multi-channel escalation strategies
+
+- **Content Generator** (`/src/services/contentGenerator.ts`)
+  - Email, WhatsApp, and Call script templates
+  - Dynamic content based on attempt number
+  - Urgency-aware messaging
+
+#### API Routes
+- `POST /api/chasers` - Create new chaser
+- `GET /api/chasers` - Get all chasers
+- `GET /api/chasers/[id]` - Get specific chaser
+- `PATCH /api/chasers/[id]` - Update chaser
+- `DELETE /api/chasers/[id]` - Delete chaser
+- `POST /api/webhooks/response` - Handle responses
+
+## 📊 Urgency Timing
+
+| Urgency | Initial Delay | Follow-ups |
+|---------|--------------|------------|
+| **Low** | 3 days | 7, 14, 30 days |
+| **Medium** | 1 day | 3, 7, 14 days |
+| **High** | 6 hours | 1, 2, 4, 7 days |
+| **Urgent** | Immediate | 12h, 1d, 2d, 3d |
+
+## 🔄 Medium Strategies
+
+- **Email**: email → email → email → call
+- **WhatsApp**: whatsapp → whatsapp → email
+- **Call**: call → email → call
+- **Hybrid**: email → whatsapp → call → email
+
+## 💻 Tech Stack
+
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes (TypeScript)
+- **State**: React Context API
+- **Styling**: Custom purple/lime theme
+
+## 🚦 Getting Started
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📁 Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── chasers/
+│   │   │   ├── route.ts          # Main chaser API
+│   │   │   └── [id]/route.ts     # Individual chaser operations
+│   │   └── webhooks/
+│   │       └── response/route.ts # Response webhook
+│   ├── dashboard/
+│   │   └── page.tsx              # Dashboard page
+│   ├── settings/
+│   │   ├── layout.tsx
+│   │   ├── urgency/page.tsx
+│   │   └── medium/page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx                  # Home/Create page
+│   └── globals.css
+├── components/
+│   ├── ChaserForm.tsx
+│   ├── ChaserDashboard.tsx
+│   └── SettingsDropdown.tsx
+├── context/
+│   └── ChaserContext.tsx         # Global state
+├── services/
+│   ├── scheduleGenerator.ts      # Schedule logic
+│   └── contentGenerator.ts       # Content templates
+├── types/
+│   ├── chaser.ts                 # Frontend types
+│   └── backend.ts                # Backend types
+├── data/
+│   └── users.ts
+└── lib/
+    └── api.ts                    # API client functions
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔮 Production Roadmap
 
-## Learn More
+To make this production-ready, you'll need:
 
-To learn more about Next.js, take a look at the following resources:
+### 1. Database
+```bash
+# Example with Prisma + PostgreSQL
+npm install prisma @prisma/client
+npx prisma init
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. Job Queue
+```bash
+# BullMQ for scheduled outreach
+npm install bullmq ioredis
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Email Service
+```bash
+# SendGrid or similar
+npm install @sendgrid/mail
+```
 
-## Deploy on Vercel
+### 4. WhatsApp Integration
+```bash
+# Twilio
+npm install twilio
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 5. Authentication
+```bash
+# NextAuth.js
+npm install next-auth
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Environment Variables
+
+Create a `.env.local` file:
+
+```env
+# Database
+DATABASE_URL="postgresql://..."
+
+# Redis (for BullMQ)
+REDIS_URL="redis://..."
+
+# Email
+SENDGRID_API_KEY="..."
+SENDGRID_FROM_EMAIL="..."
+
+# WhatsApp (Twilio)
+TWILIO_ACCOUNT_SID="..."
+TWILIO_AUTH_TOKEN="..."
+TWILIO_WHATSAPP_NUMBER="..."
+
+# Authentication
+NEXTAUTH_SECRET="..."
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+## 🎨 Color Scheme
+
+- **Background**: Ultra dark purple (`#0a0118`)
+- **Cards**: Dark purple (`#1a0d2e`)
+- **Accents**: Lime green (`#84ff00`)
+- **Text**: White (`#ffffff`)
+
+## 📄 License
+
+MIT
