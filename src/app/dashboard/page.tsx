@@ -1,12 +1,75 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ChaserDashboard from '@/components/ChaserDashboard';
 import SettingsDropdown from '@/components/SettingsDropdown';
 import Link from 'next/link';
-import { useChasers } from '@/context/ChaserContext';
+import { Chaser } from '@/types/chaser';
 
 export default function DashboardPage() {
-  const { chasers, deleteChaser } = useChasers();
+  const [chasers, setChasers] = useState<Chaser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch chasers from database via API
+  useEffect(() => {
+    fetchChasers();
+  }, []);
+
+  async function fetchChasers() {
+    try {
+      setLoading(true);
+      console.log('📡 Fetching chasers from database...');
+      
+      const response = await fetch('/api/chasers');
+      const data = await response.json();
+      
+      console.log(`📊 Received ${data.chasers.length} chasers from API`);
+      
+      // Convert backend format to frontend format
+      const formattedChasers: Chaser[] = data.chasers.map((c: any) => ({
+        id: c.id,
+        docType: c.documents,
+        urgency: c.urgency,
+        medium: 'Email' as any,
+        user: {
+          id: c.customer?.id || c.id,
+          name: c.customer?.name || c.contactName,
+          email: c.customer?.email || c.contactEmail || 'N/A',
+          phone: c.customer?.phone || c.contactPhone || 'N/A',
+          company: c.customer?.company || 'N/A'
+        },
+        createdAt: new Date(c.createdAt),
+        status: c.status as any
+      }));
+      
+      setChasers(formattedChasers);
+      console.log(`✅ Dashboard loaded with ${formattedChasers.length} chasers`);
+    } catch (error) {
+      console.error('❌ Error fetching chasers:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteChaser(id: string) {
+    try {
+      console.log(`🗑️ Deleting chaser ${id}...`);
+      
+      const response = await fetch(`/api/chasers/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Deleted chaser ${id}`);
+        // Refresh the list from database
+        await fetchChasers();
+      } else {
+        console.error('Failed to delete chaser');
+      }
+    } catch (error) {
+      console.error('Error deleting chaser:', error);
+    }
+  }
 
   return (
     <div className="font-sans min-h-screen bg-background">
@@ -40,7 +103,15 @@ export default function DashboardPage() {
 
           {/* Dashboard */}
           <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-            <ChaserDashboard chasers={chasers} onDelete={deleteChaser} />
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-warm-pink text-xl animate-pulse">
+                  Loading chasers from database...
+                </p>
+              </div>
+            ) : (
+              <ChaserDashboard chasers={chasers} onDelete={deleteChaser} />
+            )}
           </div>
         </div>
 

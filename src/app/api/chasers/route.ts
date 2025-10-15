@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CreateChaserRequest, CreateChaserResponse, ChaserBackend } from '@/types/backend';
 import { generateOutreachSchedule, getNextOutreachDate } from '@/services/scheduleGenerator';
 import { generateContent, generateSubject } from '@/services/contentGenerator';
-import { addChaser, readChasers } from '@/lib/storage';
 import { sendGmailEmail, trackEmailSent } from '@/lib/gmail';
+import { prisma } from '@/lib/prisma';
+import { findOrCreateCustomer } from '@/lib/db';
 
 /**
  * POST /api/chasers - Create a new chaser
@@ -41,6 +42,20 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    // Find or create customer if email is provided in 'who' field
+    let customerId: string | undefined = undefined;
+    
+    // Check if 'who' is an email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(body.who)) {
+      const customer = await findOrCreateCustomer(body.who, {
+        name: body.who,
+        phone: body.contactPhone,
+        company: undefined
+      });
+      customerId = customer.id;
+    }
+    
     // Create chaser object
     const chaser: ChaserBackend = {
       id: chaserId,
@@ -49,7 +64,7 @@ export async function POST(request: NextRequest) {
       who: body.who,
       urgency: body.urgency,
       contactName: body.who,
-      contactEmail: body.contactEmail,
+      contactEmail: body.contactEmail || body.who,
       contactPhone: body.contactPhone,
       status: 'scheduled',
       currentAttempt: 0,
@@ -61,8 +76,42 @@ export async function POST(request: NextRequest) {
       completedAt: null
     };
     
-    // Save to file storage
-    addChaser(chaser);
+    // Save to database
+    await prisma.chaser.create({
+      data: {
+        id: chaser.id,
+        task: chaser.task,
+        documents: chaser.documents,
+        who: chaser.who,
+        urgency: chaser.urgency,
+        customerId: customerId,
+        contactName: chaser.contactName,
+        contactEmail: chaser.contactEmail,
+        contactPhone: chaser.contactPhone,
+        status: chaser.status,
+        currentAttempt: chaser.currentAttempt,
+        maxAttempts: chaser.maxAttempts,
+        nextOutreachAt: chaser.nextOutreachAt,
+        completedAt: chaser.completedAt,
+        schedule: {
+          create: chaser.schedule.map(item => ({
+            id: item.id,
+            attemptNumber: item.attemptNumber,
+            medium: item.medium,
+            scheduledFor: item.scheduledFor,
+            status: item.status,
+            content: item.content,
+            template: item.template,
+            sentAt: item.sentAt,
+            deliveredAt: item.deliveredAt,
+            responseReceived: item.responseReceived,
+            metadata: item.metadata ? JSON.stringify(item.metadata) : null
+          }))
+        }
+      }
+    });
+    
+    console.log(`💾 Saved chaser ${chaser.id} to database`);
     
     // Send first email immediately if it's an email
     const firstSchedule = schedule[0];
@@ -92,18 +141,21 @@ export async function POST(request: NextRequest) {
         
         trackEmailSent();
         
-        // Update schedule status
-        firstSchedule.status = 'sent';
-        firstSchedule.sentAt = new Date();
-        chaser.currentAttempt = 1;
-        chaser.updatedAt = new Date();
+        // Update schedule status in database
+        await prisma.outreachSchedule.update({
+          where: { id: firstSchedule.id },
+          data: {
+            status: 'sent',
+            sentAt: new Date()
+          }
+        });
         
-        // Re-save with updated status
-        const { updateChaser } = await import('@/lib/storage');
-        updateChaser(chaser.id, {
-          schedule: chaser.schedule,
-          currentAttempt: chaser.currentAttempt,
-          updatedAt: chaser.updatedAt
+        await prisma.chaser.update({
+          where: { id: chaser.id },
+          data: {
+            currentAttempt: 1,
+            updatedAt: new Date()
+          }
         });
         
         console.log('✅ First email sent successfully!');
@@ -137,9 +189,31 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const chasers = readChasers();
+    const chasers = await prisma.chaser.findMany({
+      include: {
+        schedule: {
+          orderBy: {
+            attemptNumber: 'asc'
+          }
+        },
+        customer: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    // Convert to backend format with parsed metadata
+    const formattedChasers = chasers.map(chaser => ({
+      ...chaser,
+      schedule: chaser.schedule.map(item => ({
+        ...item,
+        metadata: item.metadata ? JSON.parse(item.metadata) : {}
+      }))
+    }));
+    
     return NextResponse.json({
-      chasers,
+      chasers: formattedChasers,
       total: chasers.length
     });
   } catch (error) {
