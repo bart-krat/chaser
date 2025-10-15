@@ -33,20 +33,39 @@ async function processOutreach() {
         console.log(`   Attempt: ${scheduleItem.attemptNumber}`);
         console.log(`   To: ${chaser.contactEmail || chaser.contactName}`);
         
-        // All schedule items are emails now
-        // Generate subject line (use AI if available)
+        // Check if this is a follow-up email (2 or 4) that should be threaded
+        const isFollowUp = scheduleItem.attemptNumber === 2 || scheduleItem.attemptNumber === 4;
+        let inReplyTo: string | undefined;
+        let references: string | undefined;
         let subject: string;
-        if (isAIEnabled()) {
-          try {
-            subject = await generateSubjectWithAI({
-              contactName: chaser.contactName,
-              documents: chaser.documents,
-              task: chaser.task,
-              urgency: chaser.urgency,
-              attemptNumber: scheduleItem.attemptNumber
-            });
-          } catch (error) {
-            // Fallback to template subject
+        
+        if (isFollowUp) {
+          // Get the previous email's message ID for threading
+          const { prisma } = await import('@/lib/prisma');
+          const previousAttempt = scheduleItem.attemptNumber - 1;
+          const previousSchedule = await prisma.outreachSchedule.findFirst({
+            where: {
+              chaserId: chaser.id,
+              attemptNumber: previousAttempt
+            }
+          });
+          
+          if (previousSchedule?.messageId) {
+            inReplyTo = previousSchedule.messageId;
+            references = previousSchedule.messageId;
+            console.log(`🔗 This is a reply to attempt ${previousAttempt}`);
+            
+            // Get original subject and add "Re:"
+            // For Email 2, reply to Email 1's subject
+            // For Email 4, reply to Email 3's subject  
+            const docPreview = chaser.documents.split('\n')[0].substring(0, 50);
+            const originalSubject = previousAttempt === 1 
+              ? `Document Requirements - ${docPreview}`
+              : `URGENT: Document Requirements - ${docPreview}`;
+            
+            subject = `Re: ${originalSubject}`;
+          } else {
+            console.warn(`⚠️ No message ID found for previous attempt ${previousAttempt}, sending as new thread`);
             subject = generateSubject({
               contactName: chaser.contactName,
               documents: chaser.documents,
@@ -56,29 +75,54 @@ async function processOutreach() {
             });
           }
         } else {
-          subject = generateSubject({
-            contactName: chaser.contactName,
-            documents: chaser.documents,
-            task: chaser.task,
-            attemptNumber: scheduleItem.attemptNumber,
-            urgency: chaser.urgency
-          });
+          // Email 1 or 3 - new thread, generate subject with AI
+          if (isAIEnabled()) {
+            try {
+              subject = await generateSubjectWithAI({
+                contactName: chaser.contactName,
+                documents: chaser.documents,
+                task: chaser.task,
+                urgency: chaser.urgency,
+                attemptNumber: scheduleItem.attemptNumber
+              });
+            } catch (error) {
+              subject = generateSubject({
+                contactName: chaser.contactName,
+                documents: chaser.documents,
+                task: chaser.task,
+                attemptNumber: scheduleItem.attemptNumber,
+                urgency: chaser.urgency
+              });
+            }
+          } else {
+            subject = generateSubject({
+              contactName: chaser.contactName,
+              documents: chaser.documents,
+              task: chaser.task,
+              attemptNumber: scheduleItem.attemptNumber,
+              urgency: chaser.urgency
+            });
+          }
         }
         
-        // Send email
-        await sendGmailEmail({
+        // Send email with threading headers
+        const emailResult = await sendGmailEmail({
           to: chaser.contactEmail || chaser.contactName,
           subject,
           text: scheduleItem.content,
-          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${scheduleItem.content}</div>`
+          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${scheduleItem.content}</div>`,
+          inReplyTo,
+          references
         });
         
         trackEmailSent();
         
-        // Update schedule item status in database
+        // Update schedule item status in database with message ID
         await updateScheduleItem(scheduleItem.id, {
           status: 'sent',
-          sentAt: new Date()
+          sentAt: new Date(),
+          messageId: emailResult.messageId,
+          threadId: emailResult.threadId
         });
         
         // Update chaser

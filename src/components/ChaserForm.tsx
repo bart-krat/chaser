@@ -130,19 +130,28 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
         />
       </div>
 
-      {/* Documents */}
+      {/* Documents - Large Textarea */}
       <div>
         <label className="block text-sm font-semibold mb-2 text-foreground">
           Documents
         </label>
-        <input
-          type="text"
+        <textarea
           value={formData.documents}
           onChange={(e) => setFormData({ ...formData, documents: e.target.value })}
-          placeholder="e.g., VAT Receipt, Income Statement, Tax Return..."
-          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
+          placeholder="Enter detailed document requirements...
+
+Example:
+Bank statements in PDF format confirming bank balances at 30.09.2025.
+The last sale invoice in Xero is Inv-5 from 12.06.2025...
+Purchase invoices:
+- Payment to Lawdepot on 20.09.25 on £47.00..."
+          rows={12}
+          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors resize-y font-mono text-sm"
           required
         />
+        <p className="text-xs text-foreground/60 mt-2">
+          💡 Add as much detail as needed - all information will be preserved exactly in the email
+        </p>
       </div>
 
       {/* Who - with Autocomplete */}

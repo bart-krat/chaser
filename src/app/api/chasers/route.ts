@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CreateChaserRequest, CreateChaserResponse, ChaserBackend } from '@/types/backend';
 import { generateOutreachSchedule, getNextOutreachDate } from '@/services/scheduleGenerator';
 import { generateContent, generateSubject } from '@/services/contentGenerator';
-import { generateEmailWithAI, generateSubjectWithAI, isAIEnabled } from '@/services/aiContentGenerator';
+import { generateEmailWithAI, generateEscalatedEmailWithAI, generateSubjectWithAI, isAIEnabled } from '@/services/aiContentGenerator';
+import { extractFirstName } from '@/services/emailSubjects';
 import { sendGmailEmail, trackEmailSent } from '@/lib/gmail';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateCustomer } from '@/lib/db';
@@ -36,21 +37,51 @@ export async function POST(request: NextRequest) {
     const aiEnabled = isAIEnabled();
     console.log(`🤖 AI Content Generation: ${aiEnabled ? 'Enabled' : 'Disabled (using templates)'}`);
     
+    // Generate content for emails 1 & 3 with AI (or templates as fallback)
+    // Emails 2 & 4 will be simple follow-ups quoting the previous email
+    
     for (const item of schedule) {
-      // All items are emails now - use AI if available, templates as fallback
-      if (aiEnabled) {
-        try {
-          item.content = await generateEmailWithAI({
-            contactName: body.who,
-            documents: body.documents,
-            task: body.task,
-            urgency: body.urgency,
-            attemptNumber: item.attemptNumber,
-            company: undefined
-          });
-          console.log(`✅ AI content generated for attempt ${item.attemptNumber}`);
-        } catch (error) {
-          console.error(`Failed to generate AI content for attempt ${item.attemptNumber}, using template`);
+      const isInitialEmail = item.attemptNumber === 1 || item.attemptNumber === 3;
+      
+      if (isInitialEmail) {
+        // Generate new email content with AI (or template fallback)
+        if (aiEnabled) {
+          try {
+            // Email 1: Friendly initial contact
+            // Email 3: Escalated/urgent (different function)
+            if (item.attemptNumber === 1) {
+              item.content = await generateEmailWithAI({
+                contactName: body.who,
+                documents: body.documents,
+                task: body.task,
+                urgency: body.urgency,
+                attemptNumber: item.attemptNumber,
+                company: undefined
+              });
+              console.log(`✅ AI friendly email generated for attempt 1`);
+            } else if (item.attemptNumber === 3) {
+              item.content = await generateEscalatedEmailWithAI({
+                contactName: body.who,
+                documents: body.documents,
+                task: body.task,
+                urgency: body.urgency,
+                attemptNumber: item.attemptNumber,
+                company: undefined
+              });
+              console.log(`✅ AI escalated email generated for attempt 3`);
+            }
+          } catch (error) {
+            console.error(`Failed to generate AI content for attempt ${item.attemptNumber}, using template`);
+            item.content = generateContent(item.template, {
+              contactName: body.who,
+              documents: body.documents,
+              task: body.task,
+              attemptNumber: item.attemptNumber,
+              urgency: body.urgency
+            });
+          }
+        } else {
+          // AI disabled - use templates
           item.content = generateContent(item.template, {
             contactName: body.who,
             documents: body.documents,
@@ -60,14 +91,38 @@ export async function POST(request: NextRequest) {
           });
         }
       } else {
-        // AI disabled - use email templates
-        item.content = generateContent(item.template, {
-          contactName: body.who,
-          documents: body.documents,
-          task: body.task,
-          attemptNumber: item.attemptNumber,
-          urgency: body.urgency
-        });
+        // Email 2 & 4: Simple follow-up template (no AI needed)
+        // Will be populated after initial emails are generated
+        item.content = '[FOLLOW_UP_PLACEHOLDER]'; // Temporary, will be replaced below
+      }
+    }
+    
+    // Now generate follow-up emails that quote the previous email
+    for (const item of schedule) {
+      if (item.content === '[FOLLOW_UP_PLACEHOLDER]') {
+        const previousEmail = schedule.find(s => s.attemptNumber === item.attemptNumber - 1);
+        
+        if (previousEmail) {
+          const firstName = extractFirstName(body.who);
+          
+          item.content = `Hi ${firstName},
+
+Just following up to see if you got my last email regarding the document requirements.
+
+──────────────────────────────
+Previous Email:
+──────────────────────────────
+
+${previousEmail.content}
+
+──────────────────────────────
+
+Could you please send these over when you get a chance?
+
+Thank you!`;
+          
+          console.log(`✅ Follow-up template created for attempt ${item.attemptNumber} (quotes previous email)`);
+        }
       }
     }
     
@@ -174,7 +229,7 @@ export async function POST(request: NextRequest) {
         
         console.log(`📬 Sending to: ${recipientEmail}`);
         
-        await sendGmailEmail({
+        const emailResult = await sendGmailEmail({
           to: recipientEmail,
           subject,
           text: firstSchedule.content,
@@ -183,12 +238,14 @@ export async function POST(request: NextRequest) {
         
         trackEmailSent();
         
-        // Update schedule status in database
+        // Update schedule status in database WITH message ID for threading
         await prisma.outreachSchedule.update({
           where: { id: firstSchedule.id },
           data: {
             status: 'sent',
-            sentAt: new Date()
+            sentAt: new Date(),
+            messageId: emailResult.messageId,
+            threadId: emailResult.threadId
           }
         });
         

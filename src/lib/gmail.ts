@@ -17,22 +17,38 @@ export interface SendEmailParams {
   subject: string;
   text: string;
   html?: string;
+  inReplyTo?: string;  // Message-ID of email we're replying to
+  references?: string; // Thread reference chain (for threading)
 }
 
 export async function sendGmailEmail({
   to,
   subject,
   text,
-  html
+  html,
+  inReplyTo,
+  references
 }: SendEmailParams) {
   try {
-    // Create email content
-    const message = [
+    // Build email headers
+    const headers = [
       `From: ${process.env.GMAIL_FROM_EMAIL}`,
       `To: ${to}`,
       `Subject: ${subject}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/html; charset=utf-8',
+      'Content-Type: text/html; charset=utf-8'
+    ];
+    
+    // Add threading headers if this is a reply
+    if (inReplyTo) {
+      headers.push(`In-Reply-To: ${inReplyTo}`);
+      headers.push(`References: ${references || inReplyTo}`);
+      console.log(`🔗 Threading: Reply to message ${inReplyTo}`);
+    }
+    
+    // Create email content
+    const message = [
+      ...headers,
       '',
       html || text
     ].join('\n');
@@ -52,10 +68,14 @@ export async function sendGmailEmail({
       }
     });
 
-    console.log('✅ Email sent successfully:', response.data.id);
+    console.log('✅ Email sent successfully');
+    console.log(`   Message-ID: ${response.data.id}`);
+    console.log(`   Thread-ID: ${response.data.threadId}`);
+    
     return {
       success: true,
-      messageId: response.data.id
+      messageId: response.data.id || '',
+      threadId: response.data.threadId || ''
     };
   } catch (error) {
     console.error('❌ Error sending email:', error);

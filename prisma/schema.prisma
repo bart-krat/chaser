@@ -60,6 +60,8 @@ model OutreachSchedule {
   sentAt            DateTime?
   deliveredAt       DateTime?
   responseReceived  Boolean  @default(false)
+  messageId         String?  // Gmail Message-ID for email threading
+  threadId          String?  // Gmail Thread-ID
   metadata          String?  // JSON string for additional data
   
   chaser            Chaser   @relation(fields: [chaserId], references: [id], onDelete: Cascade)
