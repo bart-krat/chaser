@@ -3,6 +3,7 @@
 import ChaserForm from '@/components/ChaserForm';
 import SettingsDropdown from '@/components/SettingsDropdown';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useChasers } from '@/context/ChaserContext';
 import { Chaser } from '@/types/chaser';
@@ -73,11 +74,21 @@ export default function Home() {
           </div>
           
           <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-            <h1 className="text-4xl sm:text-6xl font-bold mb-4 text-warm-pink">
-              🎯 Chaser Agent
-            </h1>
-            <p className="text-lg text-foreground">
-              Automate document requests with intelligent follow-ups
+            <div className="flex items-center gap-4 mb-6">
+              <Image 
+                src="/Favicon.png" 
+                alt="Chasey" 
+                width={80}
+                height={80}
+                priority
+                className="rounded-xl"
+              />
+              <h1 className="text-5xl sm:text-7xl font-bold text-white">
+                Chasey AI
+              </h1>
+            </div>
+            <p className="text-lg text-white">
+              Stop chasing clients for documents. Let AI do it for you
             </p>
           </div>
         </header>
@@ -86,8 +97,8 @@ export default function Home() {
           <div className="space-y-6">
             {/* Form Card */}
             <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-              <h2 className="text-2xl font-bold mb-6 text-warm-pink">
-                Create New Chaser
+              <h2 className="text-2xl font-bold mb-6 text-white">
+                Go Get Chasey to Fetch
               </h2>
               <ChaserForm onSubmit={handleCreateChaser} />
             </div>

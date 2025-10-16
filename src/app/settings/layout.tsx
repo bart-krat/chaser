@@ -1,4 +1,5 @@
 import SettingsDropdown from '@/components/SettingsDropdown';
+import Image from 'next/image';
 
 export default function SettingsLayout({
   children,
@@ -15,11 +16,23 @@ export default function SettingsLayout({
           </div>
           
           <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-            <h1 className="text-4xl sm:text-6xl font-bold mb-4 text-warm-pink">
-              ⚙️ Settings
-            </h1>
-            <p className="text-lg text-foreground">
-              Configure your Chaser Agent preferences
+            <div className="flex items-center gap-4 mb-6">
+              <Image 
+                src="/Favicon.png" 
+                alt="Chasey" 
+                width={60}
+                height={60}
+                className="rounded-xl"
+              />
+              <div>
+                <h1 className="text-4xl font-bold text-white">
+                  Chasey AI
+                </h1>
+                <p className="text-sm text-white/80 mt-1">Settings</p>
+              </div>
+            </div>
+            <p className="text-lg text-white">
+              Configure your Chasey AI preferences
             </p>
           </div>
         </header>

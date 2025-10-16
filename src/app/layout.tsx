@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chaser Agent",
-  description: "Automate document requests with intelligent follow-ups",
+  title: "Chasey AI",
+  description: "Stop chasing clients for documents. Let AI do it for you",
 };
 
 export default function RootLayout({

@@ -33,6 +33,7 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -96,21 +97,34 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
     setSearchResults([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Convert to the format expected by parent component
-    onSubmit({
-      docType: formData.documents,
-      urgency: formData.urgency,
-      medium: 'Email', // Default
-      userId: selectedCustomer?.id || '1',
-      customData: {
-        ...formData,
-        contactEmail: selectedCustomer?.email || formData.who,
-        contactPhone: selectedCustomer?.phone,
-        customerData: selectedCustomer
-      }
-    });
+    
+    // Set loading state
+    setIsSubmitting(true);
+    
+    try {
+      // Show spinner for minimum 5 seconds
+      const submitPromise = onSubmit({
+        docType: formData.documents,
+        urgency: formData.urgency,
+        medium: 'Email', // Default
+        userId: selectedCustomer?.id || '1',
+        customData: {
+          ...formData,
+          contactEmail: selectedCustomer?.email || formData.who,
+          contactPhone: selectedCustomer?.phone,
+          customerData: selectedCustomer
+        }
+      });
+      
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Wait for both the submit and the 5 second delay
+      await Promise.all([submitPromise, delayPromise]);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -235,9 +249,20 @@ Purchase invoices:
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full py-4 px-6 rounded-full bg-warm-pink text-background font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all border-2 border-warm-pink hover:bg-accent-coral"
+        disabled={isSubmitting}
+        className="w-full py-4 px-6 rounded-full bg-purple-500 text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all border-2 border-purple-400 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
-        🚀 Initialize Chaser
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-3">
+            <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>🐕 Chasey is fetching...</span>
+          </span>
+        ) : (
+          '🐕 Fetch those Documents Boy!'
+        )}
       </button>
     </form>
   );
