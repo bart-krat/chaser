@@ -105,6 +105,55 @@ export default function ChaserDashboard({ chasers, onDelete }: ChaserDashboardPr
               </div>
             </div>
 
+            {/* Document Items */}
+            {chaser.documentItems && chaser.documentItems.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-warm-pink/30">
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  📋 Documents Tracking ({chaser.documentItems.length})
+                </h4>
+                <div className="space-y-2">
+                  {chaser.documentItems
+                    .sort((a: any, b: any) => a.order - b.order)
+                    .map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-start justify-between gap-3 p-3 rounded-lg bg-card-bg border border-warm-pink/20 hover:border-warm-pink/40 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {doc.name}
+                          </span>
+                        </div>
+                        {doc.notes && (
+                          <p className="text-xs text-foreground/60 line-clamp-2">
+                            {doc.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {doc.status === 'pending' && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warm-yellow/20 text-warm-yellow border border-warm-yellow">
+                            ⏳ Pending
+                          </span>
+                        )}
+                        {doc.status === 'received' && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500">
+                            ✅ Received
+                          </span>
+                        )}
+                        {doc.status === 'altered' && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500">
+                            📝 Altered
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Schedule Display */}
             {chaser.schedule && chaser.schedule.length > 0 && (
               <ChaserSchedule 

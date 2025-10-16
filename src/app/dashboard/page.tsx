@@ -24,9 +24,17 @@ export default function DashboardPage() {
       const response = await fetch('/api/chasers');
       const data = await response.json();
       
+      console.log('📊 API Response:', data);
+      
+      if (!data.chasers) {
+        console.error('❌ No chasers array in response:', data);
+        setChasers([]);
+        return;
+      }
+      
       console.log(`📊 Received ${data.chasers.length} chasers from API`);
       
-      // Convert backend format to frontend format (include schedule data)
+      // Convert backend format to frontend format (include schedule data + documentItems)
       const formattedChasers: any[] = data.chasers.map((c: any) => ({
         id: c.id,
         docType: c.documents,
@@ -41,7 +49,8 @@ export default function DashboardPage() {
         },
         createdAt: new Date(c.createdAt),
         status: c.status as any,
-        schedule: c.schedule || [] // Include schedule data
+        schedule: c.schedule || [], // Include schedule data
+        documentItems: c.documentItems || [] // Include document tracking
       }));
       
       setChasers(formattedChasers);

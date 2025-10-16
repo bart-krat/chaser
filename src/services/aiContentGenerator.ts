@@ -17,7 +17,7 @@ function getOpenAIClient(): OpenAI {
 interface EmailGenerationParams {
   contactName: string;
   documents: string;
-  task: string;
+  name: string;
   urgency: string;
   attemptNumber: number;
   company?: string;
@@ -32,14 +32,14 @@ export async function generateEmailWithAI(params: EmailGenerationParams): Promis
     const prompt = `Generate ONLY the email body text for a document request.
 
 RECIPIENT NAME: ${params.contactName}
-TASK: ${params.task}
+NAME: ${params.name}
 DOCUMENTS NEEDED (preserve EXACTLY as written):
 ${params.documents}
 
 Instructions:
 1. Start with a greeting using the ACTUAL recipient name: "Hi ${params.contactName},"
 2. Brief opening line (hope this finds you well, etc)
-3. State: "In reference to ${params.task}, we will require the following documents from you:"
+3. State: "In reference to ${params.name}, we will require the following documents from you:"
 4. List the documents EXACTLY as provided above - DO NOT change, summarize, or paraphrase ANY document text
 5. Add a polite call-to-action asking them to send the documents
 6. Close professionally (Best regards, Thank you, etc)
@@ -101,7 +101,7 @@ export async function generateEscalatedEmailWithAI(params: EmailGenerationParams
     const prompt = `Generate ONLY the email body text for an ESCALATED document request.
 
 RECIPIENT NAME: ${params.contactName}
-TASK: ${params.task}
+NAME: ${params.name}
 DOCUMENTS NEEDED (preserve EXACTLY as written):
 ${params.documents}
 
@@ -110,7 +110,7 @@ CONTEXT: This is an escalated request. We have reached out before without receiv
 Instructions:
 1. Start with a greeting: "Hi ${params.contactName},"
 2. Opening should be more direct (not "hope this finds you well" - something more urgent)
-3. State: "In reference to ${params.task}, we urgently require the following documents from you:"
+3. State: "In reference to ${params.name}, we urgently require the following documents from you:"
 4. List the documents EXACTLY as provided - DO NOT change ANY text
 5. Emphasize urgency: "This is time-sensitive and we need these documents as soon as possible to proceed."
 6. Offer help but be firm: "If there are any issues preventing you from providing these, please let me know immediately."
@@ -179,7 +179,7 @@ export async function generateFollowUpEmailWithAI(params: EmailGenerationParams)
     const prompt = `Generate ONLY a follow-up email body text. This is a REPLY to a previous email in the same thread.
 
 RECIPIENT NAME: ${params.contactName}
-ORIGINAL TASK: ${params.task}
+ORIGINAL NAME: ${params.name}
 DOCUMENTS STILL NEEDED (preserve EXACTLY as written):
 ${params.documents}
 
@@ -190,7 +190,7 @@ Context:
 
 Instructions:
 1. Start with: "Hi ${params.contactName},"
-2. Mention this is a follow-up: "I'm following up on my previous email regarding ${params.task}"
+2. Mention this is a follow-up: "I'm following up on my previous email regarding ${params.name}"
 3. State: "We still need the following documents from you:"
 4. List the documents EXACTLY as provided - DO NOT change ANY text
 5. ${isSecondThread ? 'Express urgency professionally: "This is marked as high priority and we need these urgently to proceed."' : 'Politely ask: "Could you please send these when you have a moment?"'}
@@ -298,7 +298,7 @@ function getFallbackContent(params: EmailGenerationParams): string {
   const templateContext: TemplateContext = {
     contactName: params.contactName,
     documents: params.documents,
-    task: params.task,
+    name: params.name,
     attemptNumber: params.attemptNumber,
     urgency: params.urgency
   };

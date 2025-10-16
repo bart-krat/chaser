@@ -3,6 +3,7 @@ import { CreateChaserRequest, CreateChaserResponse, ChaserBackend } from '@/type
 import { generateOutreachSchedule, getNextOutreachDate } from '@/services/scheduleGenerator';
 import { generateContent, generateSubject } from '@/services/contentGenerator';
 import { generateEmailWithAI, generateEscalatedEmailWithAI, generateSubjectWithAI, isAIEnabled } from '@/services/aiContentGenerator';
+import { parseDocumentsWithAI, isDocumentParsingEnabled } from '@/services/aiDocumentParser';
 import { extractFirstName } from '@/services/emailSubjects';
 import { sendGmailEmail, trackEmailSent } from '@/lib/gmail';
 import { prisma } from '@/lib/prisma';
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body: CreateChaserRequest = await request.json();
     
     // Validate required fields
-    if (!body.task || !body.documents || !body.who || !body.urgency) {
+    if (!body.name || !body.documents || !body.who || !body.urgency) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -25,6 +26,11 @@ export async function POST(request: NextRequest) {
     
     // Create chaser ID
     const chaserId = `chaser_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Parse documents into individual items using AI
+    console.log('📄 Parsing documents into individual items...');
+    const parsedDocuments = await parseDocumentsWithAI(body.documents);
+    console.log(`✅ Parsed ${parsedDocuments.length} document items`);
     
     // Generate outreach schedule
     const schedule = generateOutreachSchedule(chaserId, {
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
               item.content = await generateEmailWithAI({
                 contactName: body.who,
                 documents: body.documents,
-                task: body.task,
+                name: body.name,
                 urgency: body.urgency,
                 attemptNumber: item.attemptNumber,
                 company: undefined
@@ -63,7 +69,7 @@ export async function POST(request: NextRequest) {
               item.content = await generateEscalatedEmailWithAI({
                 contactName: body.who,
                 documents: body.documents,
-                task: body.task,
+                name: body.name,
                 urgency: body.urgency,
                 attemptNumber: item.attemptNumber,
                 company: undefined
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
             item.content = generateContent(item.template, {
               contactName: body.who,
               documents: body.documents,
-              task: body.task,
+              name: body.name,
               attemptNumber: item.attemptNumber,
               urgency: body.urgency
             });
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
           item.content = generateContent(item.template, {
             contactName: body.who,
             documents: body.documents,
-            task: body.task,
+            name: body.name,
             attemptNumber: item.attemptNumber,
             urgency: body.urgency
           });
@@ -143,7 +149,7 @@ Thank you!`;
     // Create chaser object
     const chaser: ChaserBackend = {
       id: chaserId,
-      task: body.task,
+      name: body.name,
       documents: body.documents,
       who: body.who,
       urgency: body.urgency,
@@ -160,11 +166,11 @@ Thank you!`;
       completedAt: null
     };
     
-    // Save to database
+    // Save to database with document items
     await prisma.chaser.create({
       data: {
         id: chaser.id,
-        task: chaser.task,
+        name: chaser.name,
         documents: chaser.documents,
         who: chaser.who,
         urgency: chaser.urgency,
@@ -191,6 +197,14 @@ Thank you!`;
             responseReceived: item.responseReceived,
             metadata: item.metadata ? JSON.stringify(item.metadata) : null
           }))
+        },
+        documentItems: {
+          create: parsedDocuments.map(doc => ({
+            name: doc.name,
+            status: 'pending',
+            order: doc.order,
+            notes: doc.description || null
+          }))
         }
       }
     });
@@ -209,7 +223,7 @@ Thank you!`;
           subject = await generateSubjectWithAI({
             contactName: body.who,
             documents: body.documents,
-            task: body.task,
+            name: body.name,
             urgency: body.urgency,
             attemptNumber: 1
           });
@@ -218,7 +232,7 @@ Thank you!`;
           subject = generateSubject({
             contactName: body.who,
             documents: body.documents,
-            task: body.task,
+            name: body.name,
             attemptNumber: 1,
             urgency: body.urgency
           });
@@ -288,6 +302,8 @@ Thank you!`;
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('📡 GET /api/chasers - Fetching all chasers...');
+    
     const chasers = await prisma.chaser.findMany({
       include: {
         schedule: {
@@ -295,30 +311,40 @@ export async function GET(request: NextRequest) {
             attemptNumber: 'asc'
           }
         },
-        customer: true
+        customer: true,
+        documentItems: {
+          orderBy: {
+            order: 'asc'
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
     
+    console.log(`✅ Found ${chasers.length} chasers in database`);
+    
     // Convert to backend format with parsed metadata
-    const formattedChasers = chasers.map(chaser => ({
+    const formattedChasers = chasers.map((chaser: any) => ({
       ...chaser,
-      schedule: chaser.schedule.map(item => ({
+      schedule: chaser.schedule ? chaser.schedule.map((item: any) => ({
         ...item,
         metadata: item.metadata ? JSON.parse(item.metadata) : {}
-      }))
+      })) : [],
+      documentItems: chaser.documentItems || []
     }));
+    
+    console.log(`✅ Returning ${formattedChasers.length} formatted chasers`);
     
     return NextResponse.json({
       chasers: formattedChasers,
       total: chasers.length
     });
   } catch (error) {
-    console.error('Error fetching chasers:', error);
+    console.error('❌ Error fetching chasers:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch chasers' },
+      { error: 'Failed to fetch chasers', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

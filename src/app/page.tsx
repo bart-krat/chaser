@@ -21,7 +21,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          task: formData.customData.task,
+          name: formData.customData.name,
           documents: formData.customData.documents,
           who: formData.customData.who,
           urgency: formData.customData.urgency,

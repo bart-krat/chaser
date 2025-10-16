@@ -1,5 +1,17 @@
 // Extended backend types for the Chaser system
 
+export interface DocumentItem {
+  id: string;
+  chaserId: string;
+  name: string;
+  status: 'pending' | 'received' | 'altered';
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+  receivedAt: Date | null;
+  notes: string | null;
+}
+
 export interface OutreachSchedule {
   id: string;
   chaserId: string;
@@ -24,8 +36,8 @@ export interface ChaserBackend {
   id: string;
   
   // Basic Info (from form)
-  task: string;
-  documents: string;
+  name: string;
+  documents: string;  // Full text description
   who: string;
   urgency: string;
   
@@ -39,8 +51,9 @@ export interface ChaserBackend {
   currentAttempt: number;
   maxAttempts: number;
   
-  // Schedule
+  // Schedule & Documents
   schedule: OutreachSchedule[];
+  documentItems?: DocumentItem[];  // Individual tracked documents
   
   // Timestamps
   createdAt: Date;
@@ -58,7 +71,7 @@ export interface ScheduleConfig {
 export interface TemplateContext {
   contactName: string;
   documents: string;
-  task: string;
+  name: string;
   attemptNumber: number;
   urgency: string;
 }
@@ -69,7 +82,7 @@ export interface UrgencyTiming {
 }
 
 export interface CreateChaserRequest {
-  task: string;
+  name: string;
   documents: string;
   who: string;
   urgency: string;

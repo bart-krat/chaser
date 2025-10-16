@@ -8,7 +8,7 @@ const EMAIL_TEMPLATES: Record<string, TemplateFn> = {
 
 Hi ${ctx.contactName},
 
-I hope this email finds you well. I'm reaching out regarding ${ctx.task}.
+I hope this email finds you well. I'm reaching out regarding ${ctx.name}.
 
 We need the following documents from you:
 📄 ${ctx.documents}
@@ -23,7 +23,7 @@ Best regards`,
 
 Hi ${ctx.contactName},
 
-This is a friendly reminder about the ${ctx.documents} we requested for ${ctx.task}.
+This is a friendly reminder about the ${ctx.documents} we requested for ${ctx.name}.
 
 We haven't received these yet, and they're important for us to proceed. 
 
@@ -37,7 +37,7 @@ Thanks!`,
 
 Hi ${ctx.contactName},
 
-I wanted to follow up once more regarding the ${ctx.documents} needed for ${ctx.task}.
+I wanted to follow up once more regarding the ${ctx.documents} needed for ${ctx.name}.
 
 This request has been marked as ${ctx.urgency} priority, and we really need these documents to move forward.
 
@@ -51,7 +51,7 @@ Best regards`,
 
 Hi ${ctx.contactName},
 
-This is our final reminder about the ${ctx.documents} for ${ctx.task}.
+This is our final reminder about the ${ctx.documents} for ${ctx.name}.
 
 We've reached out multiple times and haven't received a response. This is marked as ${ctx.urgency} priority.
 
@@ -65,10 +65,10 @@ Regards`
 // WhatsApp templates
 const WHATSAPP_TEMPLATES: Record<string, TemplateFn> = {
   attempt_1_whatsapp: (ctx) => 
-    `Hi ${ctx.contactName}! 👋\n\nQuick request: We need your ${ctx.documents} for ${ctx.task}.\n\nCan you send them over when you get a chance? Thanks! 🙏`,
+    `Hi ${ctx.contactName}! 👋\n\nQuick request: We need your ${ctx.documents} for ${ctx.name}.\n\nCan you send them over when you get a chance? Thanks! 🙏`,
   
   attempt_2_whatsapp: (ctx) =>
-    `Hey ${ctx.contactName}, just following up on the ${ctx.documents} we need for ${ctx.task}. Any update? 📄`,
+    `Hey ${ctx.contactName}, just following up on the ${ctx.documents} we need for ${ctx.name}. Any update? 📄`,
   
   attempt_3_whatsapp: (ctx) =>
     `Hi ${ctx.contactName}, this is ${ctx.urgency} priority - we really need those ${ctx.documents}. Can you help us out today? 🙏`
@@ -77,13 +77,13 @@ const WHATSAPP_TEMPLATES: Record<string, TemplateFn> = {
 // Call scripts
 const CALL_TEMPLATES: Record<string, TemplateFn> = {
   attempt_1_call: (ctx) => 
-    `CALL SCRIPT:\n\nHi ${ctx.contactName}, this is [Your Name] calling about ${ctx.task}.\n\nWe need your ${ctx.documents} to proceed. Can we discuss how to get these to us?\n\n[Listen and note response]\n\nThank you for your time.`,
+    `CALL SCRIPT:\n\nHi ${ctx.contactName}, this is [Your Name] calling about ${ctx.name}.\n\nWe need your ${ctx.documents} to proceed. Can we discuss how to get these to us?\n\n[Listen and note response]\n\nThank you for your time.`,
   
   attempt_2_call: (ctx) =>
     `CALL SCRIPT:\n\nHi ${ctx.contactName}, I'm following up on our previous request for ${ctx.documents}.\n\nThis is marked as ${ctx.urgency} priority. Is there anything blocking you from providing these?\n\n[Listen and assist]\n\nI appreciate your help with this.`,
   
   attempt_3_call: (ctx) =>
-    `CALL SCRIPT:\n\nHi ${ctx.contactName}, this is an urgent follow-up regarding ${ctx.documents} for ${ctx.task}.\n\nWe've made several attempts to reach you. This is critical for us to proceed.\n\n[Discuss urgency and next steps]\n\nLet's resolve this today if possible.`
+    `CALL SCRIPT:\n\nHi ${ctx.contactName}, this is an urgent follow-up regarding ${ctx.documents} for ${ctx.name}.\n\nWe've made several attempts to reach you. This is critical for us to proceed.\n\n[Discuss urgency and next steps]\n\nLet's resolve this today if possible.`
 };
 
 // Combine all templates
@@ -116,7 +116,7 @@ export function generateContent(
 function generateDefaultContent(context: TemplateContext): string {
   return `Hi ${context.contactName},
 
-We need your ${context.documents} for ${context.task}.
+We need your ${context.documents} for ${context.name}.
 
 This is attempt ${context.attemptNumber} to reach you. Please respond at your earliest convenience.
 

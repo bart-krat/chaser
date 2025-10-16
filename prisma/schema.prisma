@@ -25,8 +25,8 @@ model Customer {
 
 model Chaser {
   id              String   @id
-  task            String
-  documents       String
+  name            String
+  documents       String   // Full text description (kept for email generation)
   who             String   // Kept for legacy, but customerId is primary now
   urgency         String
   customerId      String?  // Reference to Customer table
@@ -43,8 +43,26 @@ model Chaser {
   
   customer        Customer? @relation(fields: [customerId], references: [id])
   schedule        OutreachSchedule[]
+  documentItems   DocumentItem[]  // Individual tracked documents
   
   @@index([customerId])
+  @@index([status])
+}
+
+model DocumentItem {
+  id          String   @id @default(uuid())
+  chaserId    String
+  name        String   // Document name/description
+  status      String   @default("pending")  // 'pending' | 'received' | 'altered'
+  order       Int      @default(0)  // Display order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  receivedAt  DateTime?  // When marked as received
+  notes       String?    // Optional notes about this document
+  
+  chaser      Chaser   @relation(fields: [chaserId], references: [id], onDelete: Cascade)
+  
+  @@index([chaserId])
   @@index([status])
 }
 

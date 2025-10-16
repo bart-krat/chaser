@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 interface SimpleFormData {
-  task: string;
+  name: string;
   documents: string;
   who: string;
   urgency: string;
@@ -23,7 +23,7 @@ interface ChaserFormProps {
 
 export default function ChaserForm({ onSubmit }: ChaserFormProps) {
   const [formData, setFormData] = useState<SimpleFormData>({
-    task: '',
+    name: '',
     documents: '',
     who: '',
     urgency: 'Medium', // Default to Medium
@@ -129,16 +129,16 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* TASK */}
+      {/* NAME */}
       <div>
         <label className="block text-sm font-semibold mb-2 text-foreground">
-          TASK
+          Name
         </label>
         <input
           type="text"
-          value={formData.task}
-          onChange={(e) => setFormData({ ...formData, task: e.target.value })}
-          placeholder="Enter task description..."
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Enter chaser name..."
           className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
           required
         />
@@ -261,7 +261,7 @@ Purchase invoices:
             <span>🐕 Chasey is fetching...</span>
           </span>
         ) : (
-          '🐕 Fetch those Documents Boy!'
+          'Fetch'
         )}
       </button>
     </form>
