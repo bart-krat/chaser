@@ -28,7 +28,8 @@ model Chaser {
   name            String
   documents       String   // Full text description (kept for email generation)
   who             String   // Kept for legacy, but customerId is primary now
-  urgency         String
+  dueDate         DateTime // When documents are due
+  urgency         String?  // Optional: Kept for backward compatibility
   customerId      String?  // Reference to Customer table
   contactName     String   // Deprecated, use customer.name
   contactEmail    String?  // Deprecated, use customer.email
@@ -47,6 +48,7 @@ model Chaser {
   
   @@index([customerId])
   @@index([status])
+  @@index([dueDate])
 }
 
 model DocumentItem {

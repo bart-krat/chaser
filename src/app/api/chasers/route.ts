@@ -17,9 +17,18 @@ export async function POST(request: NextRequest) {
     const body: CreateChaserRequest = await request.json();
     
     // Validate required fields
-    if (!body.name || !body.documents || !body.who || !body.urgency) {
+    if (!body.name || !body.documents || !body.who || !body.dueDate) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Parse due date
+    const dueDate = new Date(body.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid due date' },
         { status: 400 }
       );
     }
@@ -32,11 +41,43 @@ export async function POST(request: NextRequest) {
     const parsedDocuments = await parseDocumentsWithAI(body.documents);
     console.log(`✅ Parsed ${parsedDocuments.length} document items`);
     
-    // Generate outreach schedule
-    const schedule = generateOutreachSchedule(chaserId, {
-      urgency: body.urgency,
-      medium: 'Hybrid', // Default to hybrid for now
-      documents: body.documents
+    // Generate outreach schedule based on due date
+    // Work backwards from due date to create 4 email schedule
+    const now = new Date();
+    const timeUntilDue = dueDate.getTime() - now.getTime();
+    const daysUntilDue = timeUntilDue / (1000 * 60 * 60 * 24);
+    
+    // Calculate optimal spacing for 4 emails before due date
+    let emailIntervals: number[] = [];
+    if (daysUntilDue < 1) {
+      // Less than 1 day: send immediately and 3 quick follow-ups
+      emailIntervals = [0, 0.25, 0.5, 0.75]; // 0, 6h, 12h, 18h before due
+    } else if (daysUntilDue < 3) {
+      // 1-3 days: spread evenly
+      const interval = daysUntilDue / 4;
+      emailIntervals = [0, interval, interval * 2, interval * 3];
+    } else {
+      // 3+ days: standard schedule
+      const interval = Math.min(2, daysUntilDue / 4);
+      emailIntervals = [0, interval, interval * 2, Math.max(interval * 3, daysUntilDue - 0.5)];
+    }
+    
+    const schedule = emailIntervals.map((daysFromNow, index) => {
+      const scheduledDate = new Date(now.getTime() + (daysFromNow * 24 * 60 * 60 * 1000));
+      return {
+        id: `${chaserId}_${index + 1}`,
+        chaserId,
+        attemptNumber: index + 1,
+        medium: 'email' as const,
+        scheduledFor: scheduledDate,
+        status: 'pending' as const,
+        content: '',
+        template: `attempt_${index + 1}_email`,
+        sentAt: null,
+        deliveredAt: null,
+        responseReceived: false,
+        metadata: {}
+      };
     });
     
     // Generate content for each schedule item (all emails now)
@@ -60,7 +101,7 @@ export async function POST(request: NextRequest) {
                 contactName: body.who,
                 documents: body.documents,
                 name: body.name,
-                urgency: body.urgency,
+                urgency: `Due: ${dueDate.toLocaleDateString()}`,
                 attemptNumber: item.attemptNumber,
                 company: undefined
               });
@@ -70,7 +111,7 @@ export async function POST(request: NextRequest) {
                 contactName: body.who,
                 documents: body.documents,
                 name: body.name,
-                urgency: body.urgency,
+                urgency: `URGENT - Due: ${dueDate.toLocaleDateString()}`,
                 attemptNumber: item.attemptNumber,
                 company: undefined
               });
@@ -83,7 +124,7 @@ export async function POST(request: NextRequest) {
               documents: body.documents,
               name: body.name,
               attemptNumber: item.attemptNumber,
-              urgency: body.urgency
+              urgency: `Due: ${dueDate.toLocaleDateString()}`
             });
           }
         } else {
@@ -93,7 +134,7 @@ export async function POST(request: NextRequest) {
             documents: body.documents,
             name: body.name,
             attemptNumber: item.attemptNumber,
-            urgency: body.urgency
+            urgency: `Due: ${dueDate.toLocaleDateString()}`
           });
         }
       } else {
@@ -152,7 +193,7 @@ Thank you!`;
       name: body.name,
       documents: body.documents,
       who: body.who,
-      urgency: body.urgency,
+      urgency: `Due: ${dueDate.toLocaleDateString()}`,
       contactName: body.who,
       contactEmail: body.contactEmail || body.who,
       contactPhone: body.contactPhone,
@@ -173,6 +214,7 @@ Thank you!`;
         name: chaser.name,
         documents: chaser.documents,
         who: chaser.who,
+        dueDate: dueDate,
         urgency: chaser.urgency,
         customerId: customerId,
         contactName: chaser.contactName,
@@ -224,7 +266,7 @@ Thank you!`;
             contactName: body.who,
             documents: body.documents,
             name: body.name,
-            urgency: body.urgency,
+            urgency: `Due: ${dueDate.toLocaleDateString()}`,
             attemptNumber: 1
           });
           console.log(`🤖 AI Subject: ${subject}`);
@@ -234,7 +276,7 @@ Thank you!`;
             documents: body.documents,
             name: body.name,
             attemptNumber: 1,
-            urgency: body.urgency
+            urgency: `Due: ${dueDate.toLocaleDateString()}`
           });
         }
         

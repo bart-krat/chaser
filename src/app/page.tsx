@@ -24,7 +24,7 @@ export default function Home() {
           name: formData.customData.name,
           documents: formData.customData.documents,
           who: formData.customData.who,
-          urgency: formData.customData.urgency,
+          dueDate: formData.customData.dueDate,
         }),
       });
 

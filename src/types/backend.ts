@@ -85,7 +85,7 @@ export interface CreateChaserRequest {
   name: string;
   documents: string;
   who: string;
-  urgency: string;
+  dueDate: string; // ISO datetime string
   contactEmail?: string;
   contactPhone?: string;
 }

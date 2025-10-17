@@ -6,7 +6,8 @@ interface SimpleFormData {
   name: string;
   documents: string;
   who: string;
-  urgency: string;
+  dueDate: string; // ISO date string
+  dueTime: string; // HH:MM format
 }
 
 interface Customer {
@@ -26,8 +27,19 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
     name: '',
     documents: '',
     who: '',
-    urgency: 'Medium', // Default to Medium
+    dueDate: '', // Will be set to default tomorrow
+    dueTime: '17:00', // Default to 5 PM
   });
+
+  // Set default due date to tomorrow on mount
+  useEffect(() => {
+    if (!formData.dueDate) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, dueDate: dateStr }));
+    }
+  }, []);
   
   const [searchResults, setSearchResults] = useState<Customer[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -105,13 +117,17 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
     
     try {
       // Show spinner for minimum 5 seconds
+      // Combine date and time into ISO datetime
+      const dueDateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
+      
       const submitPromise = onSubmit({
         docType: formData.documents,
-        urgency: formData.urgency,
+        dueDate: dueDateTime.toISOString(),
         medium: 'Email', // Default
         userId: selectedCustomer?.id || '1',
         customData: {
           ...formData,
+          dueDate: dueDateTime.toISOString(),
           contactEmail: selectedCustomer?.email || formData.who,
           contactPhone: selectedCustomer?.phone,
           customerData: selectedCustomer
@@ -129,124 +145,142 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* NAME */}
-      <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">
-          Name
-        </label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Enter chaser name..."
-          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
-          required
-        />
-      </div>
-
-      {/* Documents - Large Textarea */}
-      <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">
-          Documents
-        </label>
-        <textarea
-          value={formData.documents}
-          onChange={(e) => setFormData({ ...formData, documents: e.target.value })}
-          placeholder="Enter detailed document requirements...
+      {/* Two Column Layout: Documents on Left, Form Fields on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* LEFT COLUMN - Documents */}
+        <div className="flex flex-col">
+          <label className="block text-sm font-semibold mb-2 text-foreground">
+            Documents 📄
+          </label>
+          <textarea
+            value={formData.documents}
+            onChange={(e) => setFormData({ ...formData, documents: e.target.value })}
+            placeholder="Enter detailed document requirements...
 
 Example:
 Bank statements in PDF format confirming bank balances at 30.09.2025.
 The last sale invoice in Xero is Inv-5 from 12.06.2025...
 Purchase invoices:
 - Payment to Lawdepot on 20.09.25 on £47.00..."
-          rows={12}
-          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors resize-y font-mono text-sm"
-          required
-        />
-        <p className="text-xs text-foreground/60 mt-2">
-          💡 Add as much detail as needed - all information will be preserved exactly in the email
-        </p>
-      </div>
-
-      {/* Who - with Autocomplete */}
-      <div className="relative" ref={dropdownRef}>
-        <label className="block text-sm font-semibold mb-2 text-foreground">
-          Who
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={formData.who}
-            onChange={(e) => handleWhoChange(e.target.value)}
-            placeholder="Start typing name or email..."
-            className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
+            className="flex-1 p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors resize-none font-mono text-sm min-h-[400px]"
             required
-            autoComplete="off"
           />
-          {isSearching && (
-            <div className="absolute right-4 top-4">
-              <div className="w-5 h-5 border-2 border-warm-pink border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
+          <p className="text-xs text-foreground/60 mt-2">
+            💡 Add as much detail as needed - all information will be preserved exactly in the email
+          </p>
         </div>
-        
-        {/* Autocomplete Dropdown */}
-        {showDropdown && searchResults.length > 0 && (
-          <div className="absolute z-50 w-full mt-2 bg-card-bg border-2 border-warm-pink rounded-lg shadow-xl max-h-60 overflow-y-auto">
-            {searchResults.map((customer) => (
-              <button
-                key={customer.id}
-                type="button"
-                onClick={() => handleSelectCustomer(customer)}
-                className="w-full text-left px-4 py-3 hover:bg-warm-pink/20 transition-colors border-b border-warm-pink/10 last:border-b-0"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-foreground">{customer.name}</p>
-                    <p className="text-sm text-foreground/70">{customer.email}</p>
-                  </div>
-                  {customer.company && (
-                    <span className="text-xs text-warm-pink bg-warm-pink/20 px-2 py-1 rounded">
-                      {customer.company}
-                    </span>
-                  )}
+
+        {/* RIGHT COLUMN - Other Form Fields */}
+        <div className="space-y-4">
+          {/* NAME */}
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-foreground">
+              Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Enter chaser name..."
+              className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
+              required
+            />
+          </div>
+
+          {/* Who - with Autocomplete */}
+          <div className="relative" ref={dropdownRef}>
+            <label className="block text-sm font-semibold mb-2 text-foreground">
+              Who
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.who}
+                onChange={(e) => handleWhoChange(e.target.value)}
+                placeholder="Start typing name or email..."
+                className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground placeholder:text-foreground/40 focus:border-warm-pink focus:outline-none transition-colors"
+                required
+                autoComplete="off"
+              />
+              {isSearching && (
+                <div className="absolute right-4 top-4">
+                  <div className="w-5 h-5 border-2 border-warm-pink border-t-transparent rounded-full animate-spin"></div>
                 </div>
-              </button>
-            ))}
+              )}
+            </div>
+            
+            {/* Autocomplete Dropdown */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-card-bg border-2 border-warm-pink rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                {searchResults.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    onClick={() => handleSelectCustomer(customer)}
+                    className="w-full text-left px-4 py-3 hover:bg-warm-pink/20 transition-colors border-b border-warm-pink/10 last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">{customer.name}</p>
+                        <p className="text-sm text-foreground/70">{customer.email}</p>
+                      </div>
+                      {customer.company && (
+                        <span className="text-xs text-warm-pink bg-warm-pink/20 px-2 py-1 rounded">
+                          {customer.company}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Selected Customer Preview */}
+            {selectedCustomer && (
+              <div className="mt-3 p-3 rounded-lg bg-warm-pink/10 border border-warm-pink">
+                <p className="text-sm text-foreground">
+                  <span className="font-semibold text-warm-pink">✓</span> {selectedCustomer.name}
+                </p>
+                <p className="text-xs text-foreground/70 mt-1">
+                  {selectedCustomer.email}
+                </p>
+              </div>
+            )}
           </div>
-        )}
-        
-        {/* Selected Customer Preview */}
-        {selectedCustomer && (
-          <div className="mt-3 p-4 rounded-lg bg-warm-pink/10 border border-warm-pink">
-            <p className="text-sm text-foreground">
-              <span className="font-semibold text-warm-pink">✓ Selected:</span> {selectedCustomer.name}
-            </p>
-            <p className="text-xs text-foreground/70 mt-1">
-              {selectedCustomer.email} {selectedCustomer.company && `• ${selectedCustomer.company}`}
-            </p>
+
+          {/* Due Date & Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-foreground">
+                Due Date 📅
+              </label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground focus:border-warm-pink focus:outline-none transition-colors"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-foreground">
+                Due Time ⏰
+              </label>
+              <input
+                type="time"
+                value={formData.dueTime}
+                onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
+                className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground focus:border-warm-pink focus:outline-none transition-colors"
+                required
+              />
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Urgency */}
-      <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">
-          Urgency
-        </label>
-        <select
-          value={formData.urgency}
-          onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
-          className="w-full p-4 rounded-lg border-2 border-warm-pink bg-soft-pink text-foreground focus:border-warm-pink focus:outline-none transition-colors"
-          required
-        >
-          <option value="Low">Low - 3 days initial delay</option>
-          <option value="Medium">Medium - 1 day initial delay</option>
-          <option value="High">High - 6 hours initial delay</option>
-        </select>
-      </div>
-
-      {/* Submit Button */}
+      {/* Submit Button - Full Width */}
       <button
         type="submit"
         disabled={isSubmitting}
