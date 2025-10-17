@@ -97,7 +97,7 @@ export default function ChaserSchedule({ schedule, chaserUrgency }: ChaserSchedu
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           <h4 className="text-sm font-semibold text-foreground">
-            📅 Email Schedule ({schedule.length} emails)
+            📅 Activity Log ({schedule.length} emails)
           </h4>
         </div>
         <div className="flex items-center gap-3">

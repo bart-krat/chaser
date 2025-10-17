@@ -37,6 +37,7 @@ export default function DashboardPage() {
       // Convert backend format to frontend format (include schedule data + documentItems)
       const formattedChasers: any[] = data.chasers.map((c: any) => ({
         id: c.id,
+        name: c.name, // ← ADDED: Include the chaser name!
         docType: c.documents,
         urgency: c.urgency,
         medium: 'Email' as any,

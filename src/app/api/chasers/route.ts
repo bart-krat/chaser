@@ -367,6 +367,16 @@ export async function GET(request: NextRequest) {
     
     console.log(`✅ Found ${chasers.length} chasers in database`);
     
+    // Debug: Log the first chaser's name field
+    if (chasers.length > 0) {
+      console.log(`🔍 First chaser data:`, {
+        id: chasers[0].id,
+        name: chasers[0].name,
+        contactName: chasers[0].contactName,
+        who: chasers[0].who
+      });
+    }
+    
     // Convert to backend format with parsed metadata
     const formattedChasers = chasers.map((chaser: any) => ({
       ...chaser,

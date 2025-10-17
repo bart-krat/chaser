@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Chaser } from '@/types/chaser';
 import ChaserSchedule from './ChaserSchedule';
 
@@ -9,6 +10,7 @@ interface ChaserDashboardProps {
 }
 
 export default function ChaserDashboard({ chasers, onDelete }: ChaserDashboardProps) {
+  const [expandedDocs, setExpandedDocs] = useState<{ [key: string]: boolean }>({});
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'High':
@@ -76,16 +78,16 @@ export default function ChaserDashboard({ chasers, onDelete }: ChaserDashboardPr
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-3 h-3 rounded-full ${getStatusColor(chaser.status)} animate-pulse`}></div>
-                  <h3 className="text-xl font-bold text-foreground">{chaser.user.name}</h3>
+                  <h3 className="text-xl font-bold text-foreground">{chaser.name || chaser.task || 'Unnamed Chaser'}</h3>
                   <span className="text-2xl">{getMediumIcon(chaser.medium)}</span>
                 </div>
                 
                 <div className="space-y-2 text-sm">
                   <p className="text-foreground">
-                    <span className="font-semibold">Document:</span> {chaser.docType}
+                    <span className="font-semibold">Who:</span> {chaser.contactName || chaser.user?.name || chaser.who}
                   </p>
                   <p className="text-foreground">
-                    <span className="font-semibold">Urgency:</span> {chaser.urgency}
+                    <span className="font-semibold">Due:</span> {chaser.urgency?.replace('Due: ', '') || chaser.dueDate}
                   </p>
                 </div>
               </div>
@@ -105,52 +107,77 @@ export default function ChaserDashboard({ chasers, onDelete }: ChaserDashboardPr
               </div>
             </div>
 
-            {/* Document Items */}
+            {/* Document Items - Collapsible */}
             {chaser.documentItems && chaser.documentItems.length > 0 && (
               <div className="mt-6 pt-6 border-t border-warm-pink/30">
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  📋 Documents Tracking ({chaser.documentItems.length})
-                </h4>
-                <div className="space-y-2">
-                  {chaser.documentItems
-                    .sort((a: any, b: any) => a.order - b.order)
-                    .map((doc: any) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-start justify-between gap-3 p-3 rounded-lg bg-card-bg border border-warm-pink/20 hover:border-warm-pink/40 transition-colors"
+                <button
+                  onClick={() => setExpandedDocs(prev => ({ ...prev, [chaser.id]: !prev[chaser.id] }))}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-warm-pink/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className={`w-5 h-5 text-warm-pink transition-transform ${
+                        expandedDocs[chaser.id] ? 'rotate-90' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {doc.name}
-                          </span>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <h4 className="text-sm font-semibold text-foreground">
+                      📋 Documents Tracking ({chaser.documentItems.length})
+                    </h4>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-foreground/60">
+                      {chaser.documentItems.filter((d: any) => d.status === 'received').length} received • {chaser.documentItems.filter((d: any) => d.status === 'pending').length} pending
+                    </span>
+                  </div>
+                </button>
+                
+                {expandedDocs[chaser.id] && (
+                  <div className="space-y-2 mt-3">
+                    {chaser.documentItems
+                      .sort((a: any, b: any) => a.order - b.order)
+                      .map((doc: any) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-start justify-between gap-3 p-3 rounded-lg bg-card-bg border border-warm-pink/20 hover:border-warm-pink/40 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {doc.name}
+                            </span>
+                          </div>
+                          {doc.notes && (
+                            <p className="text-xs text-foreground/60 line-clamp-2">
+                              {doc.notes}
+                            </p>
+                          )}
                         </div>
-                        {doc.notes && (
-                          <p className="text-xs text-foreground/60 line-clamp-2">
-                            {doc.notes}
-                          </p>
-                        )}
+                        <div className="flex-shrink-0">
+                          {doc.status === 'pending' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warm-yellow/20 text-warm-yellow border border-warm-yellow">
+                              ⏳ Pending
+                            </span>
+                          )}
+                          {doc.status === 'received' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500">
+                              ✅ Received
+                            </span>
+                          )}
+                          {doc.status === 'altered' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500">
+                              📝 Altered
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        {doc.status === 'pending' && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warm-yellow/20 text-warm-yellow border border-warm-yellow">
-                            ⏳ Pending
-                          </span>
-                        )}
-                        {doc.status === 'received' && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500">
-                            ✅ Received
-                          </span>
-                        )}
-                        {doc.status === 'altered' && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500">
-                            📝 Altered
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

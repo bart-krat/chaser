@@ -88,19 +88,6 @@ export default function SettingsDropdown() {
             <div className="border-t border-warm-pink/30 my-2"></div>
 
             <Link
-              href="/dashboard"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-soft-pink transition-colors group"
-            >
-              <span className="text-2xl">📊</span>
-              <div>
-                <p className="font-semibold text-foreground group-hover:text-accent-coral transition-colors">
-                  View Dashboard
-                </p>
-              </div>
-            </Link>
-
-            <Link
               href="/"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-soft-pink transition-colors group"
@@ -108,7 +95,7 @@ export default function SettingsDropdown() {
               <span className="text-2xl">🏠</span>
               <div>
                 <p className="font-semibold text-foreground group-hover:text-accent-coral transition-colors">
-                  Create Chaser
+                  Home / Dashboard
                 </p>
               </div>
             </Link>

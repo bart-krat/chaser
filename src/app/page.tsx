@@ -1,16 +1,97 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ChaserForm from '@/components/ChaserForm';
+import ChaserDashboard from '@/components/ChaserDashboard';
 import SettingsDropdown from '@/components/SettingsDropdown';
-import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useChasers } from '@/context/ChaserContext';
 import { Chaser } from '@/types/chaser';
 
 export default function Home() {
-  const router = useRouter();
-  const { addChaser } = useChasers();
+  const [chasers, setChasers] = useState<Chaser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Fetch chasers from database via API
+  useEffect(() => {
+    fetchChasers();
+  }, []);
+
+  async function fetchChasers() {
+    try {
+      setLoading(true);
+      console.log('📡 Fetching chasers from database...');
+      
+      const response = await fetch('/api/chasers');
+      const data = await response.json();
+      
+      console.log('📊 API Response:', data);
+      
+      if (!data.chasers) {
+        console.error('❌ No chasers array in response:', data);
+        setChasers([]);
+        return;
+      }
+      
+      console.log(`📊 Received ${data.chasers.length} chasers from API`);
+      
+      // Debug: Log first chaser's name field
+      if (data.chasers.length > 0) {
+        console.log('🔍 First chaser from API:', {
+          id: data.chasers[0].id,
+          name: data.chasers[0].name,
+          contactName: data.chasers[0].contactName,
+          who: data.chasers[0].who
+        });
+      }
+      
+      // Convert backend format to frontend format (include schedule data + documentItems)
+      const formattedChasers: any[] = data.chasers.map((c: any) => ({
+        id: c.id,
+        name: c.name, // ← ADDED: Include the chaser name!
+        docType: c.documents,
+        urgency: c.urgency,
+        medium: 'Email' as any,
+        user: {
+          id: c.customer?.id || c.id,
+          name: c.customer?.name || c.contactName,
+          email: c.customer?.email || c.contactEmail || 'N/A',
+          phone: c.customer?.phone || c.contactPhone || 'N/A',
+          company: c.customer?.company || 'N/A'
+        },
+        createdAt: new Date(c.createdAt),
+        status: c.status as any,
+        schedule: c.schedule || [],
+        documentItems: c.documentItems || []
+      }));
+      
+      setChasers(formattedChasers);
+      console.log(`✅ Dashboard loaded with ${formattedChasers.length} chasers`);
+    } catch (error) {
+      console.error('❌ Error fetching chasers:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteChaser(id: string) {
+    try {
+      console.log(`🗑️ Deleting chaser ${id}...`);
+      
+      const response = await fetch(`/api/chasers/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Deleted chaser ${id}`);
+        await fetchChasers();
+      } else {
+        console.error('Failed to delete chaser');
+      }
+    } catch (error) {
+      console.error('Error deleting chaser:', error);
+    }
+  }
 
   const handleCreateChaser = async (formData: any) => {
     try {
@@ -35,29 +116,10 @@ export default function Home() {
       const result = await response.json();
       console.log('Chaser created:', result);
 
-      // Create a simplified chaser for the frontend display
-      const customUser = {
-        id: result.chaser.id,
-        name: formData.customData.who,
-        email: 'N/A',
-        phone: 'N/A',
-        company: 'N/A'
-      };
-
-      const newChaser: Chaser = {
-        id: result.chaser.id,
-        docType: formData.customData.documents as any,
-        urgency: formData.customData.urgency as any,
-        medium: 'Email' as any,
-        user: customUser,
-        createdAt: new Date(result.chaser.createdAt),
-        status: 'pending',
-      };
-
-      addChaser(newChaser);
+      // Close modal and refresh dashboard
+      setIsModalOpen(false);
+      await fetchChasers();
       
-      // Redirect to dashboard
-      router.push('/dashboard');
     } catch (error) {
       console.error('Error creating chaser:', error);
       alert('Failed to create chaser. Please try again.');
@@ -68,7 +130,7 @@ export default function Home() {
     <div className="font-sans min-h-screen bg-background">
       <div className="min-h-screen p-6 sm:p-10 lg:p-16">
         {/* Header with Settings Icon */}
-        <header className="max-w-7xl mx-auto mb-12 relative">
+        <header className="max-w-7xl mx-auto mb-8 relative">
           <div className="absolute top-0 right-0 z-10">
             <SettingsDropdown />
           </div>
@@ -93,38 +155,27 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="space-y-6">
-            {/* Form Card */}
-            <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-              <h2 className="text-2xl font-bold mb-6 text-white">
-                Go Get Chasey to Fetch
-              </h2>
-              <ChaserForm onSubmit={handleCreateChaser} />
-            </div>
+        {/* Call Chasey Button */}
+        <div className="max-w-7xl mx-auto mb-8 flex justify-center">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-purple-400"
+          >
+            <span className="text-2xl">🐕</span>
+            Call Chasey
+          </button>
+        </div>
 
-            {/* Navigation */}
-            <div className="flex justify-center">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-soft-pink border-2 border-warm-pink text-foreground hover:bg-warm-pink/20 transition-all font-semibold"
-              >
-                View Dashboard →
-              </Link>
+        {/* Dashboard */}
+        <div className="max-w-7xl mx-auto">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block w-12 h-12 border-4 border-warm-pink border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-foreground">Loading chasers...</p>
             </div>
-
-            {/* Info Card */}
-            <div className="bg-soft-pink rounded-2xl p-6 border border-warm-pink">
-              <h3 className="font-bold text-foreground mb-3">💡 How it works</h3>
-              <ul className="space-y-2 text-sm text-foreground/90">
-                <li>✅ Enter the task description</li>
-                <li>✅ Specify which documents you need</li>
-                <li>✅ Add who should be chased</li>
-                <li>✅ Set the urgency level</li>
-                <li>✅ Watch as automated outreach begins!</li>
-              </ul>
-            </div>
-          </div>
+          ) : (
+            <ChaserDashboard chasers={chasers} onDelete={deleteChaser} />
+          )}
         </div>
 
         {/* Footer */}
@@ -132,6 +183,43 @@ export default function Home() {
           <p>Built with Next.js, TypeScript & Tailwind CSS</p>
         </footer>
       </div>
+
+      {/* Modal Overlay */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-card-bg rounded-2xl p-8 shadow-2xl border-2 border-warm-pink max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-soft-pink hover:bg-warm-pink/20 transition-colors flex items-center justify-center text-foreground"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Form Header */}
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-white mb-2">
+                🐕 Go Get Chasey to Fetch
+              </h2>
+              <p className="text-foreground/70">
+                Fill in the details and let Chasey chase those documents
+              </p>
+            </div>
+
+            {/* Form */}
+            <ChaserForm onSubmit={handleCreateChaser} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
