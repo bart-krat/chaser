@@ -22,11 +22,11 @@ export default function SettingsDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-3 rounded-full bg-card-bg border-2 border-warm-pink hover:border-warm-pink hover:scale-110 transition-all shadow-lg"
+        className="p-2 text-foreground/60 hover:text-foreground transition-colors"
         aria-label="Settings"
       >
         <svg
-          className="w-6 h-6 text-warm-pink"
+          className="w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

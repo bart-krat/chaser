@@ -9,6 +9,13 @@
   --soft-yellow: #1a0d2e;
   --accent-coral: #6bff00;
   --card-bg: #1a0d2e;
+  
+  /* Chasey purple colors */
+  --chasey-purple: #582E88;
+  --chasey-purple-dark: #582E88;
+  --chasey-purple-light: #B39DDB;
+  --chasey-purple-accent: #3B1B5F;
+  --chasey-text-light: #FFFFFF;
 }
 
 @theme inline {
@@ -20,6 +27,11 @@
   --color-soft-yellow: var(--soft-yellow);
   --color-accent-coral: var(--accent-coral);
   --color-card-bg: var(--card-bg);
+  --color-chasey-purple: var(--chasey-purple);
+  --color-chasey-purple-dark: var(--chasey-purple-dark);
+  --color-chasey-purple-light: var(--chasey-purple-light);
+  --color-chasey-purple-accent: var(--chasey-purple-accent);
+  --color-chasey-text-light: var(--chasey-text-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

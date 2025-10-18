@@ -135,36 +135,36 @@ export default function Home() {
             <SettingsDropdown />
           </div>
           
-          <div className="bg-card-bg rounded-2xl p-8 shadow-xl border border-warm-pink">
-            <div className="flex items-center gap-4 mb-6">
-              <Image 
-                src="/Favicon.png" 
-                alt="Chasey" 
-                width={80}
-                height={80}
-                priority
-                className="rounded-xl"
-              />
-              <h1 className="text-5xl sm:text-7xl font-bold text-white">
-                Chasey AI
-              </h1>
+          <div className="bg-soft-pink rounded-2xl p-8 shadow-xl border-2 border-warm-pink">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <Image 
+                  src="/chasey-new.png" 
+                  alt="Chasey" 
+                  width={180}
+                  height={180}
+                  priority
+                  className="rounded-xl shadow-xl"
+                />
+                <h1 className="text-5xl sm:text-7xl font-bold text-white">
+                  Chasey AI
+                </h1>
+              </div>
+              
+              {/* Call Chasey Button - Right Aligned */}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-warm-pink/10 text-warm-pink font-bold text-lg shadow-lg hover:bg-warm-pink/20 transition-all border-2 border-warm-pink hover:scale-105"
+              >
+                <span className="text-2xl">🐕</span>
+                Call Chasey
+              </button>
             </div>
             <p className="text-lg text-white">
               Stop chasing clients for documents. Let AI do it for you
             </p>
           </div>
         </header>
-
-        {/* Call Chasey Button */}
-        <div className="max-w-7xl mx-auto mb-8 flex justify-center">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all border-2 border-purple-400"
-          >
-            <span className="text-2xl">🐕</span>
-            Call Chasey
-          </button>
-        </div>
 
         {/* Dashboard */}
         <div className="max-w-7xl mx-auto">
@@ -208,10 +208,10 @@ export default function Home() {
             {/* Form Header */}
             <div className="mb-6">
               <h2 className="text-3xl font-bold text-white mb-2">
-                🐕 Go Get Chasey to Fetch
+                Start Document Request
               </h2>
               <p className="text-foreground/70">
-                Fill in the details and let Chasey chase those documents
+                Fill in the details to get Chasey AI to fetch those documents for you
               </p>
             </div>
 

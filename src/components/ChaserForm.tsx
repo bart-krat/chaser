@@ -151,7 +151,7 @@ export default function ChaserForm({ onSubmit }: ChaserFormProps) {
         {/* LEFT COLUMN - Documents */}
         <div className="flex flex-col">
           <label className="block text-sm font-semibold mb-2 text-foreground">
-            Documents 📄
+            Document Requirements 📄
           </label>
           <textarea
             value={formData.documents}
@@ -176,7 +176,7 @@ Purchase invoices:
           {/* NAME */}
           <div>
             <label className="block text-sm font-semibold mb-2 text-foreground">
-              Name
+              Project Name
             </label>
             <input
               type="text"
@@ -191,7 +191,7 @@ Purchase invoices:
           {/* Who - with Autocomplete */}
           <div className="relative" ref={dropdownRef}>
             <label className="block text-sm font-semibold mb-2 text-foreground">
-              Who
+              Client
             </label>
             <div className="relative">
               <input

@@ -79,15 +79,15 @@ export default function ChaserSchedule({ schedule, chaserUrgency }: ChaserSchedu
   const pendingCount = schedule.filter(s => s.status === 'pending').length;
 
   return (
-    <div className="mt-4 pt-4 border-t border-warm-pink/30">
+    <div className="mt-1 pt-1 border-t border-warm-pink/30">
       {/* Collapsible Header */}
       <button
         onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
-        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-warm-pink/10 transition-colors"
+        className="w-full flex items-center justify-between p-1 rounded hover:bg-warm-pink/10 transition-colors"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <svg
-            className={`w-5 h-5 text-warm-pink transition-transform ${
+            className={`w-4 h-4 text-warm-pink transition-transform ${
               isScheduleExpanded ? 'rotate-90' : ''
             }`}
             fill="none"
@@ -96,11 +96,11 @@ export default function ChaserSchedule({ schedule, chaserUrgency }: ChaserSchedu
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <h4 className="text-sm font-semibold text-foreground">
+          <h4 className="text-xs font-semibold text-foreground">
             📅 Activity Log ({schedule.length} emails)
           </h4>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-xs text-foreground/60">
             ✅ {sentCount} sent • ⏰ {pendingCount} pending
           </span>
@@ -109,18 +109,18 @@ export default function ChaserSchedule({ schedule, chaserUrgency }: ChaserSchedu
 
       {/* Schedule Items (Collapsible) */}
       {isScheduleExpanded && (
-        <div className="space-y-2 mt-3">
+        <div className="space-y-1 mt-1">
         {schedule.map((item) => (
-          <div key={item.id} className="bg-soft-pink/50 rounded-lg border border-warm-pink/20">
+          <div key={item.id} className="bg-soft-pink/50 rounded border border-warm-pink/20">
             <button
               onClick={() => toggleExpand(item.id)}
-              className="w-full text-left p-3 hover:bg-warm-pink/10 transition-colors rounded-lg"
+              className="w-full text-left p-1 hover:bg-warm-pink/10 transition-colors rounded"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{getStatusIcon(item.status)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{getStatusIcon(item.status)}</span>
                   <div>
-                    <p className="font-semibold text-foreground text-sm">
+                    <p className="font-semibold text-foreground text-xs">
                       Attempt {item.attemptNumber}
                     </p>
                     <p className="text-xs text-foreground/70">
